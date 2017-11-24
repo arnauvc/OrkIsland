@@ -21,37 +21,61 @@ struct PLAYER_NAME : public Player {
   /**
    * Types and attributes for your player can be defined here.
    */
+    typedef pair<Pos,double> PosP; // posicio i pes
+
+    struct PosA{
+        PosP posp;
+        Dir dir;//Dir del pare original
+    };
+
   typedef vector<int> VEC;
   typedef vector<VEC> MAT;
 
-  typedef pair<Pos,double> PosP; // posicio i pes
+
+
+  
 
   vector<Dir> vdir{BOTTOM, RIGHT, TOP, LEFT};
 
+  map<Pos,int> d;
+
     struct PosComp{
-        bool operator()(const PosP& a, const PosP& b) {return a.first.i != b.first.i ? a.first.i < b.first.i : a.first.j < b.first.j;}
+        //bool operator()(const PosP& a, const PosP& b) {return a.first.i != b.first.i ? a.first.i < b.first.i : a.first.j < b.first.j;}
+         bool operator()(const PosA& a, const PosA& b) {return a.posp.second > b.posp.second;}
     };
 
     MAT pos_orks;
-    MAT mapa;
 
     int prodIJ(Pos a) {return a.i * a.j;}
+
+
+    Dir direccio(Pos a, Pos b){
+        if(a + BOTTOM == b) return BOTTOM;
+        else if (a + TOP == b) return TOP;
+        else if (a + RIGHT == b) return RIGHT;
+        else return LEFT;
+    }
+
 
   //Dijkstra toooo perraco
   Dir cerca(int id){
     int size = rows() * cols();
     Unit u = unit(id); //unitat amb identificador id
+    cerr<< "Ork numero: " << id << endl;
     Pos pos = u.pos; //Posicio d'aquesta unitat u
     cerr << "Posicio inicial: "<<pos << endl;
-    vector<int> d = vector<int>(size, INT_MAX); //Vector de distancies
-    d[prodIJ(pos)] = 0;//Posicio inicial -> te distancia 0
-    queue<Pos> QD;//Cua de posicions a seguir
+    d[pos] = 0;//Posicio inicial -> te distancia 0
     vector<bool> S(size, false);//Vector de nodes visitats
-    priority_queue<PosP, vector<PosP>, PosComp > Q;
-    Q.push(PosP(pos,0));
+    priority_queue<PosA, vector<PosA>, PosComp > Q;
+    PosA pa;
+    pa.posp.first = pos; //posicio
+    pa.posp.second = 0; //valor de distancia
+    pa.dir = NONE; // direccio pare
+    Q.push(pa);
     while (not Q.empty()){
         cerr<< "Tornem a comencar"<< endl;
-        Pos posicio = Q.top().first;
+        PosA ppa = Q.top();
+        Pos posicio = Q.top().posp.first;
         Q.pop();
         cerr<< "Ara amb la posicio: "<< posicio << endl;
         int coordPos = prodIJ(posicio);
@@ -66,17 +90,20 @@ struct PLAYER_NAME : public Player {
                 Cell c = cell(posi);//Cela de la nova posicio a comprovar
                 if(pos_ok(posi) and c.type != WATER){
                     int costvida = cost(c.type);//Cost en vida de la nova cela
-                    if(d[coord] > d[coordPos] + costvida){
-                        d[coord] = d[coordPos] + costvida;
-                        QD.push(posi);
-                        if(c.type == CITY or c.type == PATH){
-                            cerr<< "Hem trobat ciutat o cami " << endl;
-                            cerr<< "A la posicio: " << posi << endl;
-                            Pos p = QD.front();
-                            return NONE;
+                    auto it = d.find(posi);
+                    if(it == d.end() or d[posi] > d[posicio] + costvida){
+                        d[posi] = d[posicio] + costvida;
+                        if((c.type == CITY and c.city_id != me()) or (c.type == PATH and c.path_id != me())){
+                            if(ppa.dir == NONE) return Dir(ranvec[i]);
+                            else return ppa.dir;
                         }
                         cerr <<"Enquem cela" <<posi << endl;
-                        Q.push(PosP(posi,d[coord]));
+                        PosA pq;
+                        pq.posp.first = posi;
+                        pq.posp.second = d[posi];
+                        if(ppa.dir == NONE) pq.dir = Dir(ranvec[i]);
+                        else pq.dir = ppa.dir;
+                        Q.push(pq);
                     }
                 }
             }
@@ -91,8 +118,7 @@ struct PLAYER_NAME : public Player {
   virtual void play () {
     
     if(round() == 0){
-      //my_orks = MAT(rows(), VEC(cols(), -1));
-      mapa = MAT(rows(), VEC(cols()));
+      //pos_orks = MAT(rows(), VEC(cols(), -1));
     
 /*
     //Definieix la posicio de tots els orks en el taulell a cada ronda
@@ -112,8 +138,11 @@ struct PLAYER_NAME : public Player {
       execute(Command(my_orks[i],cerca(my_orks[i])));
     }
     */
-    execute(Command(my_orks[0],cerca(my_orks[0])));
+   
     }
+    VEC my_orks = orks(me());
+    int i = 11;
+    execute(Command(my_orks[i],cerca(my_orks[i])));
   }
 };
 
