@@ -136,21 +136,23 @@ struct PLAYER_NAME : public Player {
     VEC my_orks = orks(me()); // Les meves unitats (orks)
 
     bool cit, pat = true;
-
-    if(round() > 100){//Assumim que no conquerirem tot abans de la meitat
-        cit = false; //cert si ens falten ciutats per conquerir
-        for(int c = 0; c < nb_cities() and !cit; ++c){
-            if(city_owner(c) != me()) cit = true;
+    if(status(me()) < 0.95){
+        if(round() > 100){//Assumim que no conquerirem tot abans de la meitat
+            
+            cit = false; //cert si ens falten ciutats per conquerir
+            for(int c = 0; c < nb_cities() and !cit; ++c){
+                if(city_owner(c) != me()) cit = true;
+            }
+            pat = false; //cert si ens falten camins per conquerir
+            for(int p = 0; p < nb_paths() and !pat; ++p){
+                if(path_owner(p) != me()) pat = true;
+            }
         }
-        pat = false; //cert si ens falten camins per conquerir
-        for(int p = 0; p < nb_paths() and !pat; ++p){
-            if(path_owner(p) != me()) pat = true;
-        }
-    }
 
-    if (cit or pat){ // Si tenim tot conquerit, no fem res
-        for(unsigned int i = 0; i < my_orks.size(); ++i){
-        execute(Command(my_orks[i],cerca(my_orks[i])));
+        if (cit or pat){ // Si tenim tot conquerit, no fem res
+            for(unsigned int i = 0; i < my_orks.size(); ++i){
+            execute(Command(my_orks[i],cerca(my_orks[i])));
+            }
         }
     }
     
